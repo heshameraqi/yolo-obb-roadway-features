@@ -47,9 +47,8 @@ class ImageFolder(Dataset):
 
 
 class ListDataset(Dataset):
-    def __init__(self, data_folder, img_size=416, val = False,split_at = 800):
-        if not val: self.img_files = [data_folder + '/' + s for s in os.listdir(data_folder) if s.endswith('.jpg')][:split_at]
-        else: self.img_files = [data_folder + '/' + im for im in os.listdir(data_folder) if im.endswith('.jpg')][split_at:]
+    def __init__(self, data_folder, img_size=416):
+        self.img_files = [data_folder + '/' + s for s in os.listdir(data_folder) if s.endswith('.jpg')]
         self.label_files = [path.replace('.jpg', '.txt') for path in self.img_files]
         self.img_shape = (img_size, img_size)
         self.max_objects = 50 # TODO: should be reduced?
@@ -151,7 +150,7 @@ class ListDataset(Dataset):
             labels[:, 4] = np.max([val1, val2], axis=0) / diagonal_length  # length
             
             # Normalize theta
-            labels[:, 5] /= 90
+            labels[:, 5] /= 90  #theta[90, -90]
 
         # Fill matrix
         filled_labels = np.zeros((self.max_objects, 6))

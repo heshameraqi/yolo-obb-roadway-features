@@ -1,3 +1,6 @@
 __pycache__/
-
+weights/*.pth
+weights/*.weights
+checkpoints/
+output/
 nohup.out

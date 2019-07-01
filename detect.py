@@ -1,31 +1,31 @@
 from __future__ import division
 
-from models import *
-from utils.utils import *
-from utils.datasets import *
-
+import argparse
+import datetime
 import os
 import sys
 import time
-import datetime
-import argparse
 
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from matplotlib.ticker import NullLocator
+import matplotlib.pyplot as plt
 from matplotlib.path import Path
+from matplotlib.ticker import NullLocator
 
 import torch
+from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torchvision import datasets
-from torch.autograd import Variable
+
+from models import *
+from utils.datasets import *
+from utils.utils import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--image_folder', type=str, default='train', help='path to dataset')
+parser.add_argument('--image_folder', type=str, default='D:/ML/Work/val', help='path to dataset')
 parser.add_argument('--config_path', type=str, default='config/yolov3.cfg', help='path to model config file')
-parser.add_argument('--weights_path', type=str, default='checkpoints/yolov3_ckpt_90.pth', help='path to weights file')
-parser.add_argument('--class_path', type=str, default='train/classes.txt', help='path to class label file')
-parser.add_argument('--conf_thres', type=float, default=0.5, help='object confidence threshold')
+parser.add_argument('--weights_path', type=str, default='checkpoints/yolov3_ckpt_100.pth', help='path to weights file')
+parser.add_argument('--class_path', type=str, default='D:/ML/Work/train/classes.txt', help='path to class label file')
+parser.add_argument('--conf_thres', type=float, default=0.8, help='object confidence threshold')
 parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold for non-maximum suppression')
 parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
 parser.add_argument('--n_cpu', type=int, default=0, help='number of cpu threads to use during batch generation')
@@ -52,7 +52,7 @@ if cuda:
 
 model.eval()  # Set in evaluation mode
 
-dataloader = DataLoader(ListDataset(opt.image_folder, img_size=opt.img_size, val = True ),
+dataloader = DataLoader(ListDataset(opt.image_folder, img_size=opt.img_size),
                         batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
 classes = load_classes(opt.class_path) # Extracts class labels from file

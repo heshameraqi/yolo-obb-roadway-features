@@ -157,8 +157,8 @@ class YOLOLayer(nn.Module):
         # The network predicts a number to be multiplied by anchor_w (actually a numbers for each anchor)
         pred_boxes[..., 2] = torch.exp(w.data) * anchor_w # Exp to make it positive value
         pred_boxes[..., 3] = torch.exp(le.data) * anchor_h
-        # theta is predicted as a value not offset and have value [-90, 90] 
-        pred_boxes[..., 4] = theta * 90 # theta is predicted independently of anchor box, TODO: change this?
+        # theta is predicted as a value not offset and have value [-90, 90]
+        pred_boxes[..., 4] = theta.data * 90 # TODO: theta is detected as standalone variable (no offset from Anchor Boxes), is this best?
 
         # Training
         if targets is not None:
