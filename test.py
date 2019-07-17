@@ -20,12 +20,13 @@ from torch.autograd import Variable
 import torch.optim as optim
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--image_folder", type=str, default="D:/ML/Work/val", help="path to dataset")
-parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
+parser.add_argument("--image_folder", type=str, default="data/data", help="path to dataset")
+parser.add_argument("--label_files", type=str, default="val.txt", help="files of the names of the annotations")
+parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
 parser.add_argument("--model_config_path", type=str, default="config/yolov3.cfg", help="path to model config file")
 #parser.add_argument("--data_config_path", type=str, default="config/coco.data", help="path to data config file")
 parser.add_argument("--weights_path", type=str, default="checkpoints/yolov3_ckpt_100.pth", help="path to weights file")
-parser.add_argument("--class_path", type=str, default="D:/ML/Work/train/classes.txt", help="path to class label file")
+parser.add_argument("--class_path", type=str, default="data/data/classes.txt", help="path to class label file")
 parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
 parser.add_argument("--conf_thres", type=float, default=0.001, help="object confidence threshold")
 parser.add_argument("--nms_thres", type=float, default=0.5, help="iou thresshold for non-maximum suppression")
@@ -52,7 +53,7 @@ if cuda:
 model.eval()
 
 # Get dataloader
-dataset = ListDataset(opt.image_folder)
+dataset = ListDataset(opt.label_files, opt.image_folder)
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor

@@ -21,13 +21,14 @@ from utils.datasets import *
 from utils.utils import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--image_folder', type=str, default='D:/ML/Work/val', help='path to dataset')
+parser.add_argument('--image_folder', type=str, default='data/data', help='path to dataset')
+parser.add_argument("--label_files", type=str, default="val.txt", help="files of the names of the annotations")
 parser.add_argument('--config_path', type=str, default='config/yolov3.cfg', help='path to model config file')
 parser.add_argument('--weights_path', type=str, default='checkpoints/yolov3_ckpt_100.pth', help='path to weights file')
-parser.add_argument('--class_path', type=str, default='D:/ML/Work/train/classes.txt', help='path to class label file')
+parser.add_argument('--class_path', type=str, default='data/data/classes.txt', help='path to class label file')
 parser.add_argument('--conf_thres', type=float, default=0.8, help='object confidence threshold')
 parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold for non-maximum suppression')
-parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
+parser.add_argument('--batch_size', type=int, default=4, help='size of the batches')
 parser.add_argument('--n_cpu', type=int, default=0, help='number of cpu threads to use during batch generation')
 parser.add_argument('--img_size', type=int, default=416, help='size of each image dimension')
 parser.add_argument('--use_cuda', type=bool, default=True, help='whether to use cuda if available')
@@ -52,7 +53,7 @@ if cuda:
 
 model.eval()  # Set in evaluation mode
 
-dataloader = DataLoader(ListDataset(opt.image_folder, img_size=opt.img_size),
+dataloader = DataLoader(ListDataset(opt.label_files, opt.image_folder, img_size=opt.img_size),
                         batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
 classes = load_classes(opt.class_path) # Extracts class labels from file

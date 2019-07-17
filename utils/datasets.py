@@ -47,9 +47,10 @@ class ImageFolder(Dataset):
 
 
 class ListDataset(Dataset):
-    def __init__(self, data_folder, img_size=416):
-        self.img_files = [data_folder + '/' + s for s in os.listdir(data_folder) if s.endswith('.jpg')]
-        self.label_files = [path.replace('.jpg', '.txt') for path in self.img_files]
+    def __init__(self, label_files, data_folder, img_size=416, val = False):
+        with open(label_files,"r") as file:
+            self.label_files = [data_folder + "/" + s.replace("\n","") for s in file.readlines()]
+        self.img_files = [s.replace(".txt", ".jpg") for s in self.label_files]
         self.img_shape = (img_size, img_size)
         self.max_objects = 50 # TODO: should be reduced?
 

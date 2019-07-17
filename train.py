@@ -19,13 +19,14 @@ from torch.autograd import Variable
 import torch.optim as optim
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--epochs", type=int, default=101, help="number of epochs")
-parser.add_argument("--image_folder", type=str, default="D:/ML/Work/train", help="path to dataset")
-parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
+parser.add_argument("--epochs", type=int, default=201, help="number of epochs")
+parser.add_argument("--image_folder", type=str, default="data/data", help="path to dataset")
+parser.add_argument("--label_files", type=str, default="train.txt", help="files of the names of the annotations")
+parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
 parser.add_argument("--model_config_path", type=str, default="config/yolov3.cfg", help="path to model config file")
 #parser.add_argument("--data_config_path", type=str, default="config/coco.data", help="path to data config file")
 parser.add_argument("--weights_path", type=str, default="weights/yolov3_weights.pth", help="path to weights file")
-parser.add_argument("--class_path", type=str, default="D:/ML/Work/train/classes.txt", help="path to class label file")
+parser.add_argument("--class_path", type=str, default="data/data/classes.txt", help="path to class label file")
 parser.add_argument("--conf_thres", type=float, default=0.8, help="object confidence threshold")
 parser.add_argument("--nms_thres", type=float, default=0.4, help="iou thresshold for non-maximum suppression")
 parser.add_argument("--n_cpu", type=int, default=0, help="number of cpu threads to use during batch generation")
@@ -79,7 +80,7 @@ model.train()
 # Get dataloader (train_path is a path of file with list of all train and validation images files)
 # theta required in degrees
 dataloader = torch.utils.data.DataLoader(
-    ListDataset(train_path), batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu
+    ListDataset(opt.label_files, train_path), batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu
 )
 
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor

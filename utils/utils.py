@@ -211,7 +211,7 @@ def bbox_iou_obb(box1, box2, visualize=False):  # box format is: x,y,w,l,theta(d
     Returns the ArIoU of two bounding boxes
     """
     ious = bbox_iou(box1, box2, x1y1x2y2= False)
-    ious = ious * torch.abs(torch.cos(box1[:, 4] - box2[:, 4]))
+    ious = ious * torch.abs(torch.cos((box1[:, 4] - box2[:, 4]) * np.pi / 180))
     return ious
 
 def bbox_iou_obb_H(box1, box2, visualize=False):  # box format is: x,y,w,l,theta(degrees)
