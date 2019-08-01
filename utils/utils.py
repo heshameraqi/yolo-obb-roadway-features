@@ -52,6 +52,66 @@ class OBB:  # Takes angle in degrees
             plt.show(block=False)
 
         return intersect_area / (union_area + 1e-16)
+		
+		
+def visualize_data(imgs, targets):
+    for sample_id in range(imgs.shape[0]):
+        image = np.transpose(imgs[sample_id].numpy(), (1, 2, 0))
+        labels = targets[sample_id].numpy()
+
+        import matplotlib as mpl
+        import matplotlib.pyplot as plt
+        import matplotlib.collections as collections
+        from matplotlib.path import Path
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        plt.imshow(image)
+
+        # denormalize x,y
+        labels[:, 1] *= image.shape[0]
+        labels[:, 2] *= image.shape[1]
+
+        # denormalize w,l
+        diagonal_length = np.sqrt(image.shape[0] ** 2 + image.shape[1] ** 2)
+        labels[:, 3] *= diagonal_length
+        labels[:, 4] *= diagonal_length
+
+        # denormalize theta
+        labels[:, 5] *= 90.
+
+        p1_x = labels[:, 1] + labels[:, 4] * np.cos(np.radians(labels[:, 5])) / 2.0 + \
+               labels[:, 3] * np.cos(np.radians(90 + labels[:, 5])) / 2.0
+        p1_y = labels[:, 2] - labels[:, 4] * np.sin(np.radians(labels[:, 5])) / 2.0 - \
+               labels[:, 3] * np.sin(np.radians(90 + labels[:, 5])) / 2.0
+
+        p2_x = labels[:, 1] - labels[:, 4] * np.cos(np.radians(labels[:, 5])) / 2.0 + \
+               labels[:, 3] * np.cos(np.radians(90 + labels[:, 5])) / 2.0
+        p2_y = labels[:, 2] + labels[:, 4] * np.sin(np.radians(labels[:, 5])) / 2.0 - \
+               labels[:, 3] * np.sin(np.radians(90 + labels[:, 5])) / 2.0
+
+        p3_x = labels[:, 1] - labels[:, 4] * np.cos(np.radians(labels[:, 5])) / 2.0 - \
+               labels[:, 3] * np.cos(np.radians(90 + labels[:, 5])) / 2.0
+        p3_y = labels[:, 2] + labels[:, 4] * np.sin(np.radians(labels[:, 5])) / 2.0 + \
+               labels[:, 3] * np.sin(np.radians(90 + labels[:, 5])) / 2.0
+
+        p4_x = labels[:, 1] + labels[:, 4] * np.cos(np.radians(labels[:, 5])) / 2.0 - \
+               labels[:, 3] * np.cos(np.radians(90 + labels[:, 5])) / 2.0
+        p4_y = labels[:, 2] - labels[:, 4] * np.sin(np.radians(labels[:, 5])) / 2.0 + \
+               labels[:, 3] * np.sin(np.radians(90 + labels[:, 5])) / 2.0
+
+        patches = []
+        for i in range(labels.shape[0]):
+            if not np.any(labels[i]):  # objects in image finished before max_objects
+                break
+            verts = [(p1_x[i], p1_y[i]), (p2_x[i], p2_y[i]), (p3_x[i], p3_y[i]), (p4_x[i], p4_y[i]), (0., 0.), ]
+            codes = [Path.MOVETO,        Path.LINETO,        Path.LINETO,        Path.LINETO,        Path.CLOSEPOLY, ]
+            path = Path(verts, codes)
+            patches.append(mpl.patches.PathPatch(path, linewidth=1, edgecolor='r', facecolor='none'))
+            ax.text(verts[0][0], verts[0][1], classes[int(labels[i][0])], fontsize=6,
+                    bbox=dict(edgecolor='none', facecolor='white', alpha=0.8, pad=0.))
+        ax.add_collection(collections.PatchCollection(patches, match_original=True))
+        # plt.show(block=False)
+        plt.show()
 
 
 def to_cpu(tensor):
@@ -172,7 +232,7 @@ def get_batch_statistics(outputs, targets, iou_threshold):
 
                 ious = bbox_iou_obb_H(np.expand_dims(pred_box, 0), target_boxes).unsqueeze(0).numpy()
                 iou, box_index = ious.max(1), ious.argmax(1)
-                if iou >= iou_threshold and box_index not in detected_boxes:
+                if iou >= iou_threshold and box_index not in detected_boxes and pred_label == target_labels[box_index]:
                     true_positives[pred_i] = 1
                     detected_boxes += [box_index]
         batch_metrics.append([true_positives, pred_scores, pred_labels])

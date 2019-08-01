@@ -31,6 +31,7 @@ parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold
 parser.add_argument('--batch_size', type=int, default=4, help='size of the batches')
 parser.add_argument('--n_cpu', type=int, default=0, help='number of cpu threads to use during batch generation')
 parser.add_argument('--img_size', type=int, default=416, help='size of each image dimension')
+parser.add_argument('--sampels_number', type=float, default=0.8, help='number of sampels to output')
 parser.add_argument('--use_cuda', type=bool, default=True, help='whether to use cuda if available')
 opt = parser.parse_args()
 print(opt)
@@ -53,7 +54,7 @@ if cuda:
 
 model.eval()  # Set in evaluation mode
 
-dataloader = DataLoader(ListDataset(opt.label_files, opt.image_folder, img_size=opt.img_size),
+dataloader = DataLoader(ListDataset(opt.label_files, opt.image_folder, img_size=opt.img_size, val=True),
                         batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
 classes = load_classes(opt.class_path) # Extracts class labels from file
@@ -85,7 +86,7 @@ for batch_i, (img_paths, input_imgs, _) in enumerate(dataloader):
     # Save image and detections
     imgs.extend(img_paths)
     img_detections.extend(detections)
-    break
+    if (batch_i * opt.batch_size) > opt.sampels_number: break
 
 
 # Bounding-box colors
@@ -100,8 +101,18 @@ for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
 
     # Create plot
     img = np.array(Image.open(path))
-    plt.figure()
-    fig, ax = plt.subplots(1)
+    height, width, depth = img.shape
+
+    # What size does the figure need to be in inches to fit the image?
+    figsize = width / float(80), height / float(80)
+
+    # Create a figure of the right size with one axes that takes up the full figure
+    fig = plt.figure(figsize=figsize)
+
+    ax = fig.add_axes([0, 0, 1, 1])
+
+    # Hide spines, ticks, etc.
+    ax.axis('off')
     ax.imshow(img)
 
     labels = detections[:,-1]
@@ -150,6 +161,9 @@ for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
         n_cls_preds = len(unique_labels)
         bbox_colors = random.sample(colors, n_cls_preds)
         for i, (x, y, w, le, theta, conf, cls_conf, cls_pred) in enumerate(detections):
+
+            #if cls_pred != 0: continue  #to display specific objects
+
             print("\t+ Label: %s, Conf: %.5f, angel : %.5f" % (classes[int(cls_pred)], cls_conf.item(), theta))
 
             y = ((y - pad_y // 2) / unpad_h) * img.shape[0]
@@ -161,7 +175,7 @@ for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
             verts = [(p1_x[i], p1_y[i]), (p2_x[i], p2_y[i]), (p3_x[i], p3_y[i]), (p4_x[i], p4_y[i]), (0., 0.), ]
             codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY, ]
             path = Path(verts, codes)
-            obbox = patches.PathPatch(path, linewidth=1, edgecolor=color, facecolor='none')
+            obbox = patches.PathPatch(path, linewidth=3, edgecolor=color, facecolor='none')
 
             # Add the bbox to the plot
             ax.add_patch(obbox)
@@ -180,7 +194,7 @@ for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
     plt.gca().xaxis.set_major_locator(NullLocator())
     plt.gca().yaxis.set_major_locator(NullLocator())
     plt.savefig("output/%d.png" % (img_i), bbox_inches="tight", pad_inches=0.0)
-    plt.show()
+    #plt.show()
     plt.close()
 
     '''

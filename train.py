@@ -2,6 +2,7 @@ from __future__ import division
 
 from models import *
 from utils.utils import *
+from utils.Logger import *
 from utils.datasets import *
 from utils.parse_config import *
 
@@ -22,22 +23,60 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--epochs", type=int, default=201, help="number of epochs")
 parser.add_argument("--image_folder", type=str, default="data/data", help="path to dataset")
 parser.add_argument("--label_files", type=str, default="train.txt", help="files of the names of the annotations")
-parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
+parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
 parser.add_argument("--model_config_path", type=str, default="config/yolov3.cfg", help="path to model config file")
 #parser.add_argument("--data_config_path", type=str, default="config/coco.data", help="path to data config file")
 parser.add_argument("--weights_path", type=str, default="weights/yolov3_weights.pth", help="path to weights file")
 parser.add_argument("--class_path", type=str, default="data/data/classes.txt", help="path to class label file")
 parser.add_argument("--conf_thres", type=float, default=0.8, help="object confidence threshold")
 parser.add_argument("--nms_thres", type=float, default=0.4, help="iou thresshold for non-maximum suppression")
-parser.add_argument("--n_cpu", type=int, default=0, help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
 parser.add_argument("--img_size", type=int, default=416, help="size of each image dimension")
-parser.add_argument("--checkpoint_interval", type=int, default=2, help="interval between saving model weights")
+parser.add_argument("--checkpoint_interval", type=int, default=5, help="interval between saving model weights")
+parser.add_argument("--evaluation_interval", type=int, default=1, help="interval evaluations on validation set")
 parser.add_argument(
     "--checkpoint_dir", type=str, default="checkpoints", help="directory where model checkpoints are saved"
 )
 parser.add_argument("--use_cuda", type=bool, default=True, help="whether to use cuda if available")
 opt = parser.parse_args()
 print(opt)
+
+
+# Function used to evalute mAP during training
+def evaluate(model, path, label_Files, iou_thres, conf_thres, nms_thres, img_size, batch_size, sampels_num, num_classes):
+    model.eval()
+
+    # Get dataloader
+    dataset = ListDataset(label_Files, path, img_size=img_size, val=True)
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size, shuffle=True, num_workers=8
+    )
+
+    Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+
+    labels = []
+    sample_metrics = []  # List of tuples (TP, confs, pred)
+    for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
+
+        # Extract labels
+        labels += [label[0] for sample in targets for label in sample]
+
+        imgs = Variable(imgs.type(Tensor), requires_grad=False)
+
+        with torch.no_grad():
+            outputs = model(imgs)
+            outputs = non_max_suppression(outputs, conf_thres=conf_thres, nms_thres=nms_thres, num_classes=num_classes)
+
+        sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
+        if batch_i * batch_size >= sampels_num : break
+
+    # Concatenate sample statistics
+    true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
+    precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, labels)
+
+    return precision, recall, AP, f1, ap_class
+
+
 
 cuda = torch.cuda.is_available() and opt.use_cuda
 print(f"Cuda is working? {cuda}")
@@ -72,6 +111,8 @@ model_dict.update(pretrained_dict)  # update without classifier
 model.load_state_dict(pretrained_dict)  # the model know has the wights of the model without angel but the classifier part is intialized
 
 
+#model.load_state_dict(torch.load(opt.weights_path))
+
 if cuda:
     model = model.cuda()
 
@@ -88,69 +129,14 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 # filter the parameters that require grad
 optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()))
 
-
-def visualize_data(imgs, targets):
-    for sample_id in range(imgs.shape[0]):
-        image = np.transpose(imgs[sample_id].numpy(), (1, 2, 0))
-        labels = targets[sample_id].numpy()
-
-        import matplotlib as mpl
-        import matplotlib.pyplot as plt
-        import matplotlib.collections as collections
-        from matplotlib.path import Path
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        plt.imshow(image)
-
-        # denormalize x,y
-        labels[:, 1] *= image.shape[0]
-        labels[:, 2] *= image.shape[1]
-
-        # denormalize w,l
-        diagonal_length = np.sqrt(image.shape[0] ** 2 + image.shape[1] ** 2)
-        labels[:, 3] *= diagonal_length
-        labels[:, 4] *= diagonal_length
-
-        # denormalize theta
-        labels[:, 5] *= 90.
-
-        p1_x = labels[:, 1] + labels[:, 4] * np.cos(np.radians(labels[:, 5])) / 2.0 + \
-               labels[:, 3] * np.cos(np.radians(90 + labels[:, 5])) / 2.0
-        p1_y = labels[:, 2] - labels[:, 4] * np.sin(np.radians(labels[:, 5])) / 2.0 - \
-               labels[:, 3] * np.sin(np.radians(90 + labels[:, 5])) / 2.0
-
-        p2_x = labels[:, 1] - labels[:, 4] * np.cos(np.radians(labels[:, 5])) / 2.0 + \
-               labels[:, 3] * np.cos(np.radians(90 + labels[:, 5])) / 2.0
-        p2_y = labels[:, 2] + labels[:, 4] * np.sin(np.radians(labels[:, 5])) / 2.0 - \
-               labels[:, 3] * np.sin(np.radians(90 + labels[:, 5])) / 2.0
-
-        p3_x = labels[:, 1] - labels[:, 4] * np.cos(np.radians(labels[:, 5])) / 2.0 - \
-               labels[:, 3] * np.cos(np.radians(90 + labels[:, 5])) / 2.0
-        p3_y = labels[:, 2] + labels[:, 4] * np.sin(np.radians(labels[:, 5])) / 2.0 + \
-               labels[:, 3] * np.sin(np.radians(90 + labels[:, 5])) / 2.0
-
-        p4_x = labels[:, 1] + labels[:, 4] * np.cos(np.radians(labels[:, 5])) / 2.0 - \
-               labels[:, 3] * np.cos(np.radians(90 + labels[:, 5])) / 2.0
-        p4_y = labels[:, 2] - labels[:, 4] * np.sin(np.radians(labels[:, 5])) / 2.0 + \
-               labels[:, 3] * np.sin(np.radians(90 + labels[:, 5])) / 2.0
-
-        patches = []
-        for i in range(labels.shape[0]):
-            if not np.any(labels[i]):  # objects in image finished before max_objects
-                break
-            verts = [(p1_x[i], p1_y[i]), (p2_x[i], p2_y[i]), (p3_x[i], p3_y[i]), (p4_x[i], p4_y[i]), (0., 0.), ]
-            codes = [Path.MOVETO,        Path.LINETO,        Path.LINETO,        Path.LINETO,        Path.CLOSEPOLY, ]
-            path = Path(verts, codes)
-            patches.append(mpl.patches.PathPatch(path, linewidth=1, edgecolor='r', facecolor='none'))
-            ax.text(verts[0][0], verts[0][1], classes[int(labels[i][0])], fontsize=6,
-                    bbox=dict(edgecolor='none', facecolor='white', alpha=0.8, pad=0.))
-        ax.add_collection(collections.PatchCollection(patches, match_original=True))
-        # plt.show(block=False)
-        plt.show()
-
+logger = Logger("logs")
 
 for epoch in range(opt.epochs):
+    model.train()
     for batch_i, (_, imgs, targets) in enumerate(dataloader):
+        # for logs steps
+        batches_done = len(dataloader) * epoch + batch_i
+
         imgs = Variable(imgs.type(Tensor))
         targets = Variable(targets.type(Tensor), requires_grad=False)
 
@@ -181,7 +167,80 @@ for epoch in range(opt.epochs):
             )
         )
 
-        model.seen += imgs.size(0)
+        # save Losses to the logger file
+        tensorboard_log = []
+        for loss_name, value in model.losses.items():
+            tensorboard_log += [(loss_name, value)]
+        tensorboard_log += [("Total Loss", loss.item())]
+        logger.list_of_scalars_summary(tensorboard_log, batches_done)
+        break
+
+    model.seen += imgs.size(0)
+
+    if epoch % opt.evaluation_interval == 0:
+        print(f"\n---- Epoch_num {epoch}----\n")
+        
+        # Evaluate the model on the validation set
+        precision, recall, AP, f1, ap_class = evaluate(
+            model,
+            path=train_path,
+            label_Files="train.txt",
+            iou_thres=0.5,
+            conf_thres=0.5,
+            nms_thres=0.5,
+            img_size=opt.img_size,
+            batch_size=4,
+            sampels_num=2,
+            num_classes=len(classes),
+        )
+
+        # add to logger file
+        evaluation_metrics = [
+            ("train_precision", precision.mean()),
+            ("train_recall", recall.mean()),
+            ("train_mAP", AP.mean()),
+            ("train_f1", f1.mean()),
+        ]
+        for i, c in enumerate(ap_class):
+            evaluation_metrics += [(f"+ Class '{c}' ({classes[c]}_training", AP[i])]
+        logger.list_of_scalars_summary(evaluation_metrics, epoch)
+
+        print("Average Precisions on training:")
+        for i, c in enumerate(ap_class):
+            print(f"+ Class '{c}' ({classes[c]}) - AP: {AP[i]}")
+
+        print(f"Training mAP: {AP.mean()}")
+
+        # Evaluate the model on the validation set
+        precision, recall, AP, f1, ap_class = evaluate(
+            model,
+            path=train_path,
+            label_Files="val.txt",
+            iou_thres=0.5,
+            conf_thres=0.5,
+            nms_thres=0.5,
+            img_size=opt.img_size,
+            batch_size=4,
+            sampels_num=2,
+            num_classes=len(classes),
+        )
+
+        # add to logger file
+        evaluation_metrics = [
+            ("Val_precision", precision.mean()),
+            ("Val_recall", recall.mean()),
+            ("Val_mAP", AP.mean()),
+            ("Val_f1", f1.mean()),
+        ]
+        for i, c in enumerate(ap_class):
+            evaluation_metrics += [(f"+ Class '{c}' ({classes[c]}_Val", AP[i])]
+        logger.list_of_scalars_summary(evaluation_metrics, epoch)
+
+        print("Average Precisions on Val:")
+        for i, c in enumerate(ap_class):
+            print(f"+ Class '{c}' ({classes[c]}) - AP: {AP[i]}")
+
+        print(f"mAP: {AP.mean()}")
 
     if epoch % opt.checkpoint_interval == 0:
         torch.save(model.state_dict(), f"checkpoints/yolov3_ckpt_%d.pth" % epoch)

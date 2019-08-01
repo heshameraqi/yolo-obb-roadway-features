@@ -5,6 +5,8 @@ import numpy as np
 
 import torch
 
+import random
+
 from torch.utils.data import Dataset
 from PIL import Image
 import torchvision.transforms as transforms
@@ -14,7 +16,106 @@ import matplotlib.patches as patches
 
 from skimage.transform import resize
 
+from imgaug import augmenters as iaa
+
 import sys
+
+
+# augmentations
+class HorizinatFlib(object):
+    def __init__(self, p=.5):
+        self.p = p
+
+    def __call__(self, img, bbox):
+        if random.random() < self.p:
+            # mirror the image
+            img = img[:,::-1,:] # the secounf part is reverse casting
+            # mirro the bbox
+            bbox[:, 1] = img.shape[1] - bbox[:, 1] # x = width - x
+            bbox[:, 5] *= -1 # angel = - angel
+            # switch classes of the specific side classes
+            bbox[bbox[:, 0] == 2, 0] = 3  # right barriar -> left
+            bbox[bbox[:, 0] == 3, 0] = 2  # left barriar -> right
+            bbox[bbox[:, 0] == 5, 0] = 6  # right curb  -> left
+            bbox[bbox[:, 0] == 6, 0] = 5  # left curb -> right
+
+
+        return img, bbox
+
+class Random_rotate(object):
+    def __init__(self, p=.5):
+        self.p = p
+
+    def __call__(self, img, labels, angel_min=-5, angel_max=5):
+        if random.random() < self.p:
+            #get the rotation angel
+            angel = np.random.uniform(angel_min, angel_max)
+
+            # rotate Image with saving the dims
+            img_new = np.array(transforms.functional.rotate(Image.fromarray(np.uint8(img)), angel, expand=True), dtype=np.float32)
+
+            # dims of the img before rotation
+            w, h = img.shape[1], img.shape[0]
+            cx, cy = w//2, h//2
+
+            # get the new center after rotation
+            w_new, h_new = img_new.shape[1], img_new.shape[0]
+            cx_new, cy_new = w_new // 2, h_new // 2
+
+            # rotate the center of the boxes with the new image
+            r = np.sqrt((labels[:,1]-cx)**2 + (labels[:,2]-cy)**2)
+            theta = np.arctan2((labels[:,2]-cy), (labels[:,1]-cx)) * (180 / np.pi) - angel
+            labels[:, 1], labels[:, 2] = cx_new + r*np.cos(np.radians(theta)), cy_new + r*np.sin(np.radians(theta))
+
+            # the hight and the width is the same as before
+
+            # the rotation of the angel is the same as the ration of the image
+            labels[:, 5] += angel
+
+            img = img_new
+
+        return img, labels
+
+class Random_translate(object):
+    def __init__(self, p=.5):
+        self.p = p
+
+    def __call__(self, img, labels):
+        if random.random() < self.p:
+            pass
+
+
+        return img, labels
+
+
+
+class Image_augmentation(object):
+
+    def __init__(self):
+        return
+
+    def __call__(self, img):
+        return self.create_augmenter()(image = img)
+
+    def create_augmenter(self):
+        st = lambda aug: iaa.Sometimes(0.4, aug)  # 40% of images to be augmented
+        oc = lambda aug: iaa.Sometimes(0.3, aug)  # 30% of images to be augmented
+        rl = lambda aug: iaa.Sometimes(0.09, aug)  # 9% of images to be augmented
+        seq = iaa.Sequential([
+        rl(iaa.GaussianBlur((0, 1.5))), # blur images with a sigma between 0 and 1.5
+        rl(iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.7), per_channel=0.5)), # add gaussian noise to images
+        oc(iaa.Dropout((0.0, 0.05))), # randomly remove up to X% of the pixels
+        #oc(iaa.CoarseDropout((0.0, 0.10), size_percent=(0.08, 0.2))), # randomly remove up to X% of the pixels
+        oc(iaa.Add((-40/255, 40/255))),  # change brightness of images (by -X to Y of original value)
+        st(iaa.Multiply((1.0, 1.5))), # change brightness of images (X-Y% of original value)
+        rl(iaa.ContrastNormalization((0.75, 1.5))),  # improve or worsen the contrast
+        # rl(iaa.Grayscale((0.0, 1))), # put grayscale
+        ], random_order=True) # order is shuffled each time with equal probability
+        return seq
+
+
+
+
 
 class ImageFolder(Dataset):
     def __init__(self, folder_path, img_size=416):
@@ -53,6 +154,8 @@ class ListDataset(Dataset):
         self.img_files = [s.replace(".txt", ".jpg") for s in self.label_files]
         self.img_shape = (img_size, img_size)
         self.max_objects = 50 # TODO: should be reduced?
+        self.acess_numb = 0
+        self.val = val
 
     def __getitem__(self, index):
 
@@ -60,6 +163,12 @@ class ListDataset(Dataset):
         #  Image
         #---------
 
+        # augmentor objects
+        img_augmentor = Image_augmentation()
+        rand_flib = HorizinatFlib()
+        rand_rotate = Random_rotate()
+
+        # load image
         img_path = self.img_files[index % len(self.img_files)].rstrip()
         img = np.array(Image.open(img_path))
 
@@ -68,6 +177,27 @@ class ListDataset(Dataset):
             index += 1
             img_path = self.img_files[index % len(self.img_files)].rstrip()
             img = np.array(Image.open(img_path))
+
+        # load labels
+        label_path = self.label_files[index % len(self.img_files)].rstrip()
+        labels = None
+        labels = np.loadtxt(label_path, delimiter=' ', skiprows=1)
+        if len(labels.shape) == 1:
+            labels = labels.reshape(1, -1)
+
+        # one transformend and one not
+        if self.acess_numb and not self.val:
+            #print(1)
+            #augment image
+            img = img_augmentor(img)
+
+            # augmaent boxes
+            img, labels = rand_flib(img, labels)
+            img, labels = rand_rotate(img, labels)
+
+        # upate acess_num
+        self.acess_numb = not(self.acess_numb)
+
 
         h, w, _ = img.shape
         dim_diff = np.abs(h - w)
@@ -99,14 +229,12 @@ class ListDataset(Dataset):
         # In coco 2014 dataset (82K+40K images train and test): class_id,x,y,width,height (all normalized from 0 to 1)
 
 
-        label_path = self.label_files[index % len(self.img_files)].rstrip()
 
-        labels = None
+
+
         if os.path.exists(label_path):
-            labels = np.loadtxt(label_path, delimiter=' ', skiprows=1)
-            if len(labels.shape) == 1 :
-                labels = labels.reshape(1,-1)
-            
+
+
             # Get OBB 4 vertices from[boxes, x,y,l,w,theta] that is the same order as in the labelImg_OBB tool
             p1_x = labels[:,1] + labels[:,3] * np.cos(np.radians(labels[:,5]     )) / 2.0 + \
                                  labels[:,4] * np.cos(np.radians(90 + labels[:,5])) / 2.0
@@ -149,7 +277,7 @@ class ListDataset(Dataset):
             val2 = np.sqrt(((p3_x - p2_x) ** 2) + ((p3_y - p2_y) ** 2))
             labels[:, 3] = np.min([val1, val2], axis=0) / diagonal_length  # width
             labels[:, 4] = np.max([val1, val2], axis=0) / diagonal_length  # length
-            
+
             # Normalize theta
             labels[:, 5] /= 90  #theta[90, -90]
 

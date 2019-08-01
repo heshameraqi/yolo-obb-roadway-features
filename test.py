@@ -25,12 +25,12 @@ parser.add_argument("--label_files", type=str, default="val.txt", help="files of
 parser.add_argument("--batch_size", type=int, default=8, help="size of each image batch")
 parser.add_argument("--model_config_path", type=str, default="config/yolov3.cfg", help="path to model config file")
 #parser.add_argument("--data_config_path", type=str, default="config/coco.data", help="path to data config file")
-parser.add_argument("--weights_path", type=str, default="checkpoints/yolov3_ckpt_100.pth", help="path to weights file")
+parser.add_argument("--weights_path", type=str, default="checkpoints/yolov3_ckpt_195.pth", help="path to weights file")
 parser.add_argument("--class_path", type=str, default="data/data/classes.txt", help="path to class label file")
 parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
 parser.add_argument("--conf_thres", type=float, default=0.001, help="object confidence threshold")
 parser.add_argument("--nms_thres", type=float, default=0.5, help="iou thresshold for non-maximum suppression")
-parser.add_argument("--n_cpu", type=int, default=0, help="number of cpu threads to use during batch generation")
+parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
 parser.add_argument("--img_size", type=int, default=416, help="size of each image dimension")
 parser.add_argument("--use_cuda", type=bool, default=True, help="whether to use cuda if available")
 opt = parser.parse_args()
@@ -53,8 +53,8 @@ if cuda:
 model.eval()
 
 # Get dataloader
-dataset = ListDataset(opt.label_files, opt.image_folder)
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
+dataset = ListDataset(opt.label_files, opt.image_folder, val=True)
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu, pin_memory=True)
 
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 

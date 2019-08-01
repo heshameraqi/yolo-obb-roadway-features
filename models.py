@@ -158,7 +158,7 @@ class YOLOLayer(nn.Module):
         pred_boxes[..., 2] = torch.exp(w.data) * anchor_w # Exp to make it positive value
         pred_boxes[..., 3] = torch.exp(le.data) * anchor_h
         # theta is predicted as a value not offset and have value [-90, 90]
-        pred_boxes[..., 4] = theta.data * 90 # TODO: theta is detected as standalone variable (no offset from Anchor Boxes), is this best?
+        pred_boxes[..., 4] = theta.data * 90 # TODO: theta is detected as standalone variable (no offset from Anchor Boxes)
 
         # Training
         if targets is not None:
@@ -197,7 +197,7 @@ class YOLOLayer(nn.Module):
 
             nProposals = int((pred_conf > 0.5).sum().item())
             recall = float(nCorrect / nGT) if nGT else 1
-            precision = float(nCorrect / nProposals)
+            precision = float(nCorrect / (nProposals+1e-16))
 
             # Handle masks
             mask = Variable(mask.type(ByteTensor))
@@ -226,7 +226,7 @@ class YOLOLayer(nn.Module):
             loss_conf = self.bce_loss(pred_conf[conf_mask_false], tconf[conf_mask_false]) + self.bce_loss(
                 pred_conf[conf_mask_true], tconf[conf_mask_true]
             )
-            loss_cls = (1 / nB) * self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))
+            loss_cls = self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))
             loss = loss_x + loss_y + loss_w + loss_le + loss_theta + loss_conf + loss_cls
 
             return (

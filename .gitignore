@@ -3,4 +3,8 @@ weights/*.pth
 weights/*.weights
 checkpoints/
 output/
+data/data/
+logs/
+train.txt
+val.txt
 nohup.out
