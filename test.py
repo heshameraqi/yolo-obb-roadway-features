@@ -64,8 +64,8 @@ labels = []
 sample_metrics = []  # List of tuples (TP, confs, pred)
 for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
 
-    # Extract labels
-    labels += [label[0] for sample in targets for label in sample]
+    # Extract labels + delete redundant exampels
+    labels += [label[0] for sample in targets for label in sample if label[-2] > 0 ]
 
     imgs = Variable(imgs.type(Tensor), requires_grad=False)
 
@@ -84,4 +84,5 @@ print("Average Precisions:")
 for i, c in enumerate(ap_class):
     print(f"+ Class '{c}' ({classes[c]}) - AP: {AP[i]}")
 
+print(f"mf1: {f1.mean()}")
 print(f"mAP: {AP.mean()}")

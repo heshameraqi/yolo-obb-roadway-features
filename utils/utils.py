@@ -150,6 +150,10 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
     i = np.argsort(-conf)
     tp, conf, pred_cls = tp[i], conf[i], pred_cls[i]
 
+    print(f"ground truth number is {len(target_cls)}")
+    print(f"true postive number is {tp.sum()}")
+    print(f"false postive number is {(1-tp).sum()}")
+
     # Find unique classes
     unique_classes = np.unique(target_cls)
 
@@ -188,6 +192,9 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
 
     return p, r, ap, f1, unique_classes.astype("int32")
 
+'''
+prereqiset: the predictions is sorted by teh order of the classes and the objectivness score
+'''
 
 def get_batch_statistics(outputs, targets, iou_threshold):
     """
@@ -218,7 +225,7 @@ def get_batch_statistics(outputs, targets, iou_threshold):
             # unnormalize target output
             target_boxes[:, :2] *= 416
             target_boxes[:, 2:4] *= 416 * np.sqrt(2)
-            target_boxes[:, 4] *=90
+            target_boxes[:, 4] *= 90
 
             for pred_i, (pred_box, pred_label) in enumerate(zip(pred_boxes, pred_labels)):
 

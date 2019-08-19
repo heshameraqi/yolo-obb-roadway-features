@@ -68,7 +68,7 @@ def evaluate(model, path, label_Files, iou_thres, conf_thres, nms_thres, img_siz
             outputs = non_max_suppression(outputs, conf_thres=conf_thres, nms_thres=nms_thres, num_classes=num_classes)
 
         sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
-        if batch_i * batch_size >= sampels_num : break
+        if batch_i * batch_size >= sampels_num: break
 
     # Concatenate sample statistics
     true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
@@ -173,7 +173,6 @@ for epoch in range(opt.epochs):
             tensorboard_log += [(loss_name, value)]
         tensorboard_log += [("Total Loss", loss.item())]
         logger.list_of_scalars_summary(tensorboard_log, batches_done)
-        break
 
     model.seen += imgs.size(0)
 
@@ -189,8 +188,8 @@ for epoch in range(opt.epochs):
             conf_thres=0.5,
             nms_thres=0.5,
             img_size=opt.img_size,
-            batch_size=4,
-            sampels_num=2,
+            batch_size=8,
+            sampels_num=400,
             num_classes=len(classes),
         )
 
@@ -220,8 +219,8 @@ for epoch in range(opt.epochs):
             conf_thres=0.5,
             nms_thres=0.5,
             img_size=opt.img_size,
-            batch_size=4,
-            sampels_num=2,
+            batch_size=8,
+            sampels_num=200,
             num_classes=len(classes),
         )
 
