@@ -185,6 +185,16 @@ class ListDataset(Dataset):
         if len(labels.shape) == 1:
             labels = labels.reshape(1, -1)
 
+        # delete ADV, tuk tuk, tyckel
+        labels = labels[labels[:,0] != 18 , :]
+        labels = labels[labels[:,0] != 16 , :]
+        labels = labels[labels[:,0] != 14 , :]
+
+        # correct the oreder of the classes
+        labels[labels[:,0] == 15, 0] = 14
+        labels[labels[:,0] == 17, 0] = 15
+        labels[labels[:,0] == 19, 0] = 16
+
         # one transformend and one not
         if self.acess_numb and not self.val:
             #print(1)
