@@ -186,14 +186,14 @@ class ListDataset(Dataset):
             labels = labels.reshape(1, -1)
 
         # delete ADV, tuk tuk, tyckel
-        labels = labels[labels[:,0] != 18 , :]
-        labels = labels[labels[:,0] != 16 , :]
-        labels = labels[labels[:,0] != 14 , :]
+        labels = labels[labels[:, 0] != 18, :]
+        labels = labels[labels[:, 0] != 16, :]
+        labels = labels[labels[:, 0] != 14, :]
 
-        # correct the oreder of the classes
-        labels[labels[:,0] == 15, 0] = 14
-        labels[labels[:,0] == 17, 0] = 15
-        labels[labels[:,0] == 19, 0] = 16
+        # correct the order of the classes
+        labels[labels[:, 0] == 15, 0] = 14
+        labels[labels[:, 0] == 17, 0] = 15
+        labels[labels[:, 0] == 19, 0] = 16
 
         # one transformend and one not
         if self.acess_numb and not self.val:
@@ -290,6 +290,10 @@ class ListDataset(Dataset):
 
             # Normalize theta
             labels[:, 5] /= 90  #theta[90, -90]
+
+            # delete samll objects
+            boxes_area = (labels[:, 3]*self.img_shape[0]) * (labels[:, 4]*self.img_shape[0])
+            labels = labels[boxes_area > 50]
 
         # Fill matrix
         filled_labels = np.zeros((self.max_objects, 6))

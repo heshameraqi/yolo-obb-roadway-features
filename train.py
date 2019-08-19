@@ -49,7 +49,7 @@ def evaluate(model, path, label_Files, iou_thres, conf_thres, nms_thres, img_siz
     # Get dataloader
     dataset = ListDataset(label_Files, path, img_size=img_size, val=True)
     dataloader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, shuffle=True, num_workers=8
+        dataset, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True
     )
 
     Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
@@ -59,7 +59,7 @@ def evaluate(model, path, label_Files, iou_thres, conf_thres, nms_thres, img_siz
     for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
 
         # Extract labels
-        labels += [label[0] for sample in targets for label in sample]
+        labels += [label[0] for sample in targets for label in sample if label[-2] > 0 ]
 
         imgs = Variable(imgs.type(Tensor), requires_grad=False)
 
@@ -100,18 +100,21 @@ burn_in = int(hyperparams["burn_in"])
 model = Darknet(opt.model_config_path)
 # model.load_weights(opt.weights_path)
 
-# Load the weights of the model Darknet weights
-model.apply(weights_init_normal)
-model_dict = model.state_dict() # state of the current model 
-pretrained_dict = torch.load(opt.weights_path) # state of the pretrained model
-pretrained_dict = {k: v for k, v in pretrained_dict.items() if ('81' not in k) and ('93' not in k) and ('105' not in k)} # remove the classifier from the state
-classifier_dict = {k: v for k, v in model_dict.items() if ('81' in k) or ('93' in k) or ('105' in k)} # get the classifier weight from new model
-pretrained_dict.update(classifier_dict)
-model_dict.update(pretrained_dict)  # update without classifier
-model.load_state_dict(pretrained_dict)  # the model know has the wights of the model without angel but the classifier part is intialized
-
-
-#model.load_state_dict(torch.load(opt.weights_path))
+# load from weight file
+if "checkpoints" not in opt.weights_path :
+    #print(1)
+    # load the weights of the model Darknet weights
+    model.apply(weights_init_normal)
+    model_dict = model.state_dict() # state of the current model
+    pretrained_dict = torch.load(opt.weights_path) # state of the pretrained model
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if ('81' not in k) and ('93' not in k) and ('105' not in k)} # remove the classifier from the state
+    classifier_dict = {k: v for k, v in model_dict.items() if ('81' in k) or ('93' in k) or ('105' in k)} # get the classifier weight from new model
+    pretrained_dict.update(classifier_dict)
+    model_dict.update(pretrained_dict)  # update without classifier
+    model.load_state_dict(pretrained_dict)  # the model know has the wights of the model without angel but the classifier part is intialized
+# load from checkpoint
+else :
+    model.load_state_dict(torch.load(opt.weights_path))
 
 if cuda:
     model = model.cuda()
@@ -121,7 +124,7 @@ model.train()
 # Get dataloader (train_path is a path of file with list of all train and validation images files)
 # theta required in degrees
 dataloader = torch.utils.data.DataLoader(
-    ListDataset(opt.label_files, train_path), batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu
+    ListDataset(opt.label_files, train_path), batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu, pin_memory=True
 )
 
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
