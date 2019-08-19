@@ -195,6 +195,19 @@ class ListDataset(Dataset):
         labels[labels[:, 0] == 17, 0] = 15
         labels[labels[:, 0] == 19, 0] = 16
 
+        # fix angels
+        labels[labels[:, 0] == 0, 5] = np.round(labels[labels[:, 0] == 0, 5] / 90) * 90  # traffic sign
+        labels[labels[:, 0] == 4, 5] = 90  # light poles
+        labels[labels[:, 0] == 8, 5] = np.round(labels[labels[:, 0] == 8, 5] / 90) * 90  # Building
+        labels[labels[:, 0] == 9, 5] = np.round(labels[labels[:, 0] == 9, 5] / 90) * 90  # billboard
+        labels[labels[:, 0] == 10, 5] = 90  # pedestrian
+        labels[labels[:, 0] == 11, 5] = np.round(labels[labels[:, 0] == 11, 5] / 90) * 90  # car
+        labels[labels[:, 0] == 12, 5] = np.round(labels[labels[:, 0] == 12, 5] / 90) * 90  # Bus
+        labels[labels[:, 0] == 13, 5] = np.round(labels[labels[:, 0] == 13, 5] / 90) * 90  # motorcycle
+        labels[labels[:, 0] == 14, 5] = np.round(labels[labels[:, 0] == 14, 5] / 90) * 90  # HV
+        labels[labels[:, 0] == 15, 5] = np.round(labels[labels[:, 0] == 15, 5] / 90) * 90  # PT
+        labels[labels[:, 0] == 16, 5] = np.round(labels[labels[:, 0] == 16, 5] / 90) * 90  # Tree
+
         # one transformend and one not
         if self.acess_numb and not self.val:
             #print(1)
@@ -203,7 +216,7 @@ class ListDataset(Dataset):
 
             # augmaent boxes
             img, labels = rand_flib(img, labels)
-            img, labels = rand_rotate(img, labels)
+            #img, labels = rand_rotate(img, labels) # remove for fixing angel
 
         # upate acess_num
         self.acess_numb = not(self.acess_numb)

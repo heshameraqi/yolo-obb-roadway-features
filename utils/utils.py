@@ -399,6 +399,15 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
         for c in unique_labels:
             # Get the detections with the particular class
             detections_class = detections[detections[:, -1] == c]
+
+            # Fixed angels
+            # objects with two angel
+            if(c == 0)or(c == 8)or(c == 9)or(c == 11)or(c == 12)or(c == 13)or(c == 14)or(c == 15)or(c == 16)or(c == 17):
+                detections_class[:, 4] = torch.round(detections_class[:, 4] / 90) * 90
+            # objects with one angel
+            elif (c == 4)or(c == 10):
+                detections_class[:, 4] = 90
+
             # Sort the detections by maximum objectness confidence
             _, conf_sort_index = torch.sort(detections_class[:, 5], descending=True) #TODO:
             detections_class = detections_class[conf_sort_index]
