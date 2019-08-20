@@ -106,8 +106,7 @@ class YOLOLayer(nn.Module):
         self.anchors = anchors
         self.num_anchors = len(anchors)
         self.num_classes = num_classes
-        self.theta_size = 10
-        self.bbox_attrs = 5 + self.theta_size + num_classes #x,y,w,l,10 * theta,obj,n_class
+        self.bbox_attrs = 7 + num_classes #x,y,w,l,sin,cos,obj,n_class
         self.image_dim = img_dim
         self.ignore_thres = 0.5
         self.lambda_coord = 1
@@ -140,9 +139,10 @@ class YOLOLayer(nn.Module):
         y = torch.sigmoid(prediction[..., 1])  # Center y
         w = prediction[..., 2]  # Width
         le = prediction[..., 3]  # Height
-        theta = torch.sigmoid(prediction[..., 4:4+self.theta_size]) # theta 10 softmax predictions
-        pred_conf = torch.sigmoid(prediction[..., 4+self.theta_size])  # Conf (objectness score)
-        pred_cls = torch.sigmoid(prediction[..., 5+self.theta_size:])  # Cls pred.
+        sin_theta = torch.sigmoid(prediction[..., 4])  # sin_theta [0 ,1]
+        cos_theta = torch.tanh(prediction[..., 5])  # cos_theta [-1 ,1]
+        pred_conf = torch.sigmoid(prediction[..., 6])  # Conf (objectness score)
+        pred_cls = torch.sigmoid(prediction[..., 7:])  # Cls pred.
 
         # Calculate offsets for each grid
         grid_x = torch.arange(nG).repeat(nG, 1).view([1, 1, nG, nG]).type(FloatTensor)
@@ -159,7 +159,7 @@ class YOLOLayer(nn.Module):
         pred_boxes[..., 2] = torch.exp(w.data) * anchor_w # Exp to make it positive value
         pred_boxes[..., 3] = torch.exp(le.data) * anchor_h
         # theta is predicted as a value not offset and have value [0, 180]
-        pred_boxes[..., 4] = torch.argmax(theta, dim=-1) * (180 / self.theta_size)  # TODO: theta is detected as softmax predifined values
+        pred_boxes[..., 4] = (torch.atan2(sin_theta.data, cos_theta.data) / np.pi) * 180  # TODO: theta is detected as stand alone variable with it's sin and cos factors
 
         # Training
         if targets is not None:
@@ -183,7 +183,7 @@ class YOLOLayer(nn.Module):
             # mask: each cell has a GT and 3 anchors, mask is all zeros except for the anchor nearest to GT
             # conf_mask: all ones except for anchors with IoU>0.5 & not nearest
             # tconf: similar to mask
-            nGT, nCorrect, mask, conf_mask, tx, ty, tw, tle, ttheta, tconf, tcls = build_targets(
+            nGT, nCorrect, mask, conf_mask, tx, ty, tw, tle, tsin, tcos, tconf, tcls = build_targets(
                 pred_boxes=pred_boxes.cpu().data,
                 pred_conf=pred_conf.cpu().data,
                 pred_cls=pred_cls.cpu().data,
@@ -194,7 +194,6 @@ class YOLOLayer(nn.Module):
                 grid_size=nG,
                 ignore_thres=self.ignore_thres,
                 img_dim=self.image_dim,
-                theta_size=self.theta_size,
             )
 
             nProposals = int((pred_conf > 0.5).sum().item())
@@ -210,7 +209,8 @@ class YOLOLayer(nn.Module):
             ty = Variable(ty.type(FloatTensor), requires_grad=False)
             tw = Variable(tw.type(FloatTensor), requires_grad=False)
             tle = Variable(tle.type(FloatTensor), requires_grad=False)
-            ttheta = Variable(ttheta.type(LongTensor), requires_grad=False)
+            tsin= Variable(tsin.type(FloatTensor), requires_grad=False)
+            tcos = Variable(tcos.type(FloatTensor), requires_grad=False)
             tconf = Variable(tconf.type(FloatTensor), requires_grad=False)
             tcls = Variable(tcls.type(LongTensor), requires_grad=False)
 
@@ -223,13 +223,14 @@ class YOLOLayer(nn.Module):
             loss_y = self.mse_loss(y[mask], ty[mask])
             loss_w = self.mse_loss(w[mask], tw[mask])
             loss_le = self.mse_loss(le[mask], tle[mask])
-            loss_theta = self.ce_loss(theta[mask], torch.argmax(ttheta[mask], 1))
+            loss_sin = self.mse_loss(sin_theta[mask], tsin[mask])
+            loss_cos = self.mse_loss(cos_theta[mask], tcos[mask])
             # he divide negative samples and postive samples to overcome the inbalance probelm with them.
             loss_conf = self.bce_loss(pred_conf[conf_mask_false], tconf[conf_mask_false]) + self.bce_loss(
                 pred_conf[conf_mask_true], tconf[conf_mask_true]
             )
-            loss_cls = self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))
-            loss = loss_x + loss_y + loss_w + loss_le + loss_theta + loss_conf + loss_cls
+            loss_cls = self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))  
+            loss = loss_x + loss_y + loss_w + loss_le + loss_sin + loss_cos + loss_conf + loss_cls
 
             return (
                 loss,
@@ -237,7 +238,8 @@ class YOLOLayer(nn.Module):
                 loss_y.item(),
                 loss_w.item(),
                 loss_le.item(),
-                loss_theta.item(),
+                loss_sin.item(),
+                loss_cos.item(),
                 loss_conf.item(),
                 loss_cls.item(),
                 recall,
@@ -268,7 +270,7 @@ class Darknet(nn.Module):
         self.img_size = img_size
         self.seen = 0
         self.header_info = np.array([0, 0, 0, self.seen, 0])
-        self.loss_names = ["x", "y", "w", "le", "theta","conf", "cls", "recall", "precision"]
+        self.loss_names = ["x", "y", "w", "le", "sin", "cos", "conf", "cls", "recall", "precision"]
 
     def forward(self, x, targets=None):
         is_training = targets is not None

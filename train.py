@@ -20,7 +20,7 @@ from torch.autograd import Variable
 import torch.optim as optim
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--epochs", type=int, default=201, help="number of epochs")
+parser.add_argument("--epochs", type=int, default=301, help="number of epochs")
 parser.add_argument("--image_folder", type=str, default="data/data", help="path to dataset")
 parser.add_argument("--label_files", type=str, default="train.txt", help="files of the names of the annotations")
 parser.add_argument("--batch_size", type=int, default=4, help="size of each image batch")
@@ -151,7 +151,7 @@ for epoch in range(opt.epochs):
         optimizer.step()
 
         print(
-            "[Epoch %d/%d, Batch %d/%d] [Losses: x %f, y %f, w %f, le %f, theta %f, conf %f, cls %f, total %f, recall: %.5f, precision: %.5f]"
+            "[Epoch %d/%d, Batch %d/%d] [Losses: x %f, y %f, w %f, le %f, sin %f, cos %f, conf %f, cls %f, total %f, recall: %.5f, precision: %.5f]"
             % (
                 epoch,
                 opt.epochs,
@@ -161,7 +161,8 @@ for epoch in range(opt.epochs):
                 model.losses["y"],
                 model.losses["w"],
                 model.losses["le"],
-                model.losses["theta"],
+                model.losses["sin"],
+                model.losses["cos"],
                 model.losses["conf"],
                 model.losses["cls"],
                 loss.item(),

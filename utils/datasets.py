@@ -289,8 +289,8 @@ class ListDataset(Dataset):
             labels[:, 4] = np.max([val1, val2], axis=0) / diagonal_length  # length
 
             # Normalize theta
-            labels[:, 5] = (labels[:, 5] + 180) % 180  # theta[0, 180)
-            labels[:, 5] /= 180  # [0,1)
+            labels[:, 5] = (labels[:, 5] + 180) % 180  #theta[0, 180)
+            labels[:, 5] /= 180  #[0,1)
 
         # Fill matrix
         filled_labels = np.zeros((self.max_objects, 6))
