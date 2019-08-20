@@ -458,8 +458,8 @@ def build_targets(
     ty = torch.zeros(nB, nA, nG, nG)
     tw = torch.zeros(nB, nA, nG, nG)
     tl = torch.zeros(nB, nA, nG, nG)
-    tsin = torch.zeros(nB, nA, nG, nG)
-    tcos = torch.zeros(nB, nA, nG, nG)
+    tsin_2theta = torch.zeros(nB, nA, nG, nG)
+    tcos_2theta = torch.zeros(nB, nA, nG, nG)
     tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0)
     tcls = torch.ByteTensor(nB, nA, nG, nG, nC).fill_(0)
 
@@ -475,8 +475,8 @@ def build_targets(
             gy = target[b, t, 2] * nG
             gw = target[b, t, 3] * np.sqrt(2)*nG # we also mutiply by np.sqrt(2) as we scaled by diagonal 
             gl = target[b, t, 4] * np.sqrt(2)*nG
-            gsin = np.sin(np.radians(target[b, t, 5] * 180))
-            gcos = np.cos(np.radians(target[b, t, 5] * 180))
+            gsin_2theta = np.sin(np.radians(target[b, t, 5] * 180 * 2))  # 2 * theta
+            gcos_2theta = np.cos(np.radians(target[b, t, 5] * 180 * 2))  # 2 * theta
 
             # Select anchor box with the most similar shape to this object
             # Get shape of gt box
@@ -520,8 +520,8 @@ def build_targets(
             tl[b, best_n, gj, gi] = math.log(gl / anchors[best_n][1] + 1e-16)
             
             # theta
-            tsin[b, best_n, gj, gi] = gsin
-            tcos[b, best_n, gj, gi] = gcos
+            tsin_2theta[b, best_n, gj, gi] = gsin_2theta
+            tcos_2theta[b, best_n, gj, gi] = gcos_2theta
             
             # Mask for yolo loss
             mask[b, best_n, gj, gi] = 1
@@ -529,7 +529,7 @@ def build_targets(
             conf_mask[b, anch_ious > ignore_thres, gj, gi] = 0
             conf_mask[b, best_n, gj, gi] = 1
 
-    return nGT, nCorrect, mask, conf_mask, tx, ty, tw, tl, tsin, tcos, tconf, tcls
+    return nGT, nCorrect, mask, conf_mask, tx, ty, tw, tl, tsin_2theta, tcos_2theta, tconf, tcls
 
 
 def to_categorical(y, num_classes):

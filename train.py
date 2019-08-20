@@ -192,7 +192,7 @@ for epoch in range(opt.epochs):
             conf_thres=0.5,
             nms_thres=0.5,
             img_size=opt.img_size,
-            batch_size=8,
+            batch_size=4,
             sampels_num=400,
             num_classes=len(classes),
         )
@@ -223,7 +223,7 @@ for epoch in range(opt.epochs):
             conf_thres=0.5,
             nms_thres=0.5,
             img_size=opt.img_size,
-            batch_size=8,
+            batch_size=4,
             sampels_num=200,
             num_classes=len(classes),
         )
