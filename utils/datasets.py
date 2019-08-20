@@ -291,6 +291,10 @@ class ListDataset(Dataset):
             # Normalize theta
             labels[:, 5] = (labels[:, 5] + 180) % 180  #theta[0, 180)
             labels[:, 5] /= 180  #[0,1)
+			
+			# delete samll objects
+            boxes_area = (labels[:, 3]*self.img_shape[0]) * (labels[:, 4]*self.img_shape[0])
+            labels = labels[boxes_area > 50]
 
         # Fill matrix
         filled_labels = np.zeros((self.max_objects, 6))
