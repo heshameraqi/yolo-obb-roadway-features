@@ -225,7 +225,7 @@ def get_batch_statistics(outputs, targets, iou_threshold):
             # unnormalize target output
             target_boxes[:, :2] *= 416
             target_boxes[:, 2:4] *= 416 * np.sqrt(2)
-            target_boxes[:, 4] *= 90
+            target_boxes[:, 4] *= 180
 
             for pred_i, (pred_box, pred_label) in enumerate(zip(pred_boxes, pred_labels)):
 
@@ -402,11 +402,13 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
 
             # Fixed angels
             # objects with two angel
-            if(c == 0)or(c == 8)or(c == 9)or(c == 11)or(c == 12)or(c == 13)or(c == 14)or(c == 15)or(c == 16)or(c == 17):
-                detections_class[:, 4] = torch.round(detections_class[:, 4] / 90) * 90
+            #if (c == 0) or (c == 8) or (c == 9) or (c == 11) or (c == 12) or (c == 13) or (c == 14) or (c == 15) or (
+            #        c == 16) or (c == 17):
+            #    detections_class[:, 4] = torch.round(detections_class[:, 4] / 90) * 90
             # objects with one angel
-            elif (c == 4)or(c == 10):
-                detections_class[:, 4] = 90
+            #elif (c == 4) or (c == 10):
+            #    detections_class[:, 4] = 90  # traffic sign
+
 
             # Sort the detections by maximum objectness confidence
             _, conf_sort_index = torch.sort(detections_class[:, 5], descending=True) #TODO:
@@ -434,7 +436,7 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
 
 
 def build_targets(
-    pred_boxes, pred_conf, pred_cls, target, anchors, num_anchors, num_classes, grid_size, ignore_thres, img_dim
+    pred_boxes, pred_conf, pred_cls, target, anchors, num_anchors, num_classes, grid_size, ignore_thres, img_dim, theta_size
 ):
 
     # target size is batch_size X max_number_of_objects_in_image X 6 (class_id,x,y,w,l,theta) (normalized GT)
@@ -447,6 +449,7 @@ def build_targets(
     nA = num_anchors
     nC = num_classes
     nG = grid_size
+    nAngels = theta_size
     
     # each cell corresponds to predicted 3 boxes. each is represented by offset from the 3 anchor boxes
     # each cell has a ground-truth and 3 anchors, mask is all zeros except for the anchor nearest to ground-truth
@@ -456,7 +459,7 @@ def build_targets(
     ty = torch.zeros(nB, nA, nG, nG)
     tw = torch.zeros(nB, nA, nG, nG)
     tl = torch.zeros(nB, nA, nG, nG)
-    ttheta = torch.zeros(nB, nA, nG, nG)
+    ttheta = torch.ByteTensor(nB, nA, nG, nG, nAngels)
     tconf = torch.ByteTensor(nB, nA, nG, nG).fill_(0)
     tcls = torch.ByteTensor(nB, nA, nG, nG, nC).fill_(0)
 
@@ -472,7 +475,7 @@ def build_targets(
             gy = target[b, t, 2] * nG
             gw = target[b, t, 3] * np.sqrt(2)*nG # we also mutiply by np.sqrt(2) as we scaled by diagonal 
             gl = target[b, t, 4] * np.sqrt(2)*nG
-            gtheta = target[b, t, 5] * 90
+            gtheta = target[b, t, 5] * 180
 
             # Select anchor box with the most similar shape to this object
             # Get shape of gt box
@@ -516,7 +519,7 @@ def build_targets(
             tl[b, best_n, gj, gi] = math.log(gl / anchors[best_n][1] + 1e-16)
             
             # theta
-            ttheta[b, best_n, gj, gi] = gtheta / 90
+            ttheta[b, best_n, gj, gi, torch.tensor(torch.round(gtheta/(180/nAngels)), dtype=torch.long) % nAngels] = 1
             
             # Mask for yolo loss
             mask[b, best_n, gj, gi] = 1

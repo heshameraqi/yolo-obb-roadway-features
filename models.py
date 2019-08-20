@@ -106,7 +106,8 @@ class YOLOLayer(nn.Module):
         self.anchors = anchors
         self.num_anchors = len(anchors)
         self.num_classes = num_classes
-        self.bbox_attrs = 6 + num_classes #x,y,w,l,theta,obj,n_class
+        self.theta_size = 10
+        self.bbox_attrs = 5 + self.theta_size + num_classes #x,y,w,l,10 * theta,obj,n_class
         self.image_dim = img_dim
         self.ignore_thres = 0.5
         self.lambda_coord = 1
@@ -139,9 +140,9 @@ class YOLOLayer(nn.Module):
         y = torch.sigmoid(prediction[..., 1])  # Center y
         w = prediction[..., 2]  # Width
         le = prediction[..., 3]  # Height
-        theta = torch.tanh(prediction[..., 4]) # theta [-1 ,1]
-        pred_conf = torch.sigmoid(prediction[..., 5])  # Conf (objectness score)
-        pred_cls = torch.sigmoid(prediction[..., 6:])  # Cls pred.
+        theta = torch.sigmoid(prediction[..., 4:4+self.theta_size]) # theta 10 softmax predictions
+        pred_conf = torch.sigmoid(prediction[..., 4+self.theta_size])  # Conf (objectness score)
+        pred_cls = torch.sigmoid(prediction[..., 5+self.theta_size:])  # Cls pred.
 
         # Calculate offsets for each grid
         grid_x = torch.arange(nG).repeat(nG, 1).view([1, 1, nG, nG]).type(FloatTensor)
@@ -157,8 +158,8 @@ class YOLOLayer(nn.Module):
         # The network predicts a number to be multiplied by anchor_w (actually a numbers for each anchor)
         pred_boxes[..., 2] = torch.exp(w.data) * anchor_w # Exp to make it positive value
         pred_boxes[..., 3] = torch.exp(le.data) * anchor_h
-        # theta is predicted as a value not offset and have value [-90, 90]
-        pred_boxes[..., 4] = theta.data * 90 # TODO: theta is detected as standalone variable (no offset from Anchor Boxes)
+        # theta is predicted as a value not offset and have value [0, 180]
+        pred_boxes[..., 4] = torch.argmax(theta, dim=-1) * (180 / self.theta_size)  # TODO: theta is detected as softmax predifined values
 
         # Training
         if targets is not None:
@@ -193,6 +194,7 @@ class YOLOLayer(nn.Module):
                 grid_size=nG,
                 ignore_thres=self.ignore_thres,
                 img_dim=self.image_dim,
+                theta_size=self.theta_size,
             )
 
             nProposals = int((pred_conf > 0.5).sum().item())
@@ -208,7 +210,7 @@ class YOLOLayer(nn.Module):
             ty = Variable(ty.type(FloatTensor), requires_grad=False)
             tw = Variable(tw.type(FloatTensor), requires_grad=False)
             tle = Variable(tle.type(FloatTensor), requires_grad=False)
-            ttheta = Variable(ttheta.type(FloatTensor), requires_grad=False)
+            ttheta = Variable(ttheta.type(LongTensor), requires_grad=False)
             tconf = Variable(tconf.type(FloatTensor), requires_grad=False)
             tcls = Variable(tcls.type(LongTensor), requires_grad=False)
 
@@ -221,7 +223,7 @@ class YOLOLayer(nn.Module):
             loss_y = self.mse_loss(y[mask], ty[mask])
             loss_w = self.mse_loss(w[mask], tw[mask])
             loss_le = self.mse_loss(le[mask], tle[mask])
-            loss_theta = self.mse_loss(theta[mask], ttheta[mask])
+            loss_theta = self.ce_loss(theta[mask], torch.argmax(ttheta[mask], 1))
             # he divide negative samples and postive samples to overcome the inbalance probelm with them.
             loss_conf = self.bce_loss(pred_conf[conf_mask_false], tconf[conf_mask_false]) + self.bce_loss(
                 pred_conf[conf_mask_true], tconf[conf_mask_true]

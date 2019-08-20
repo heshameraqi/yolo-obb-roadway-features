@@ -195,19 +195,6 @@ class ListDataset(Dataset):
         labels[labels[:, 0] == 17, 0] = 15
         labels[labels[:, 0] == 19, 0] = 16
 
-        # fix angels
-        labels[labels[:, 0] == 0, 5] = np.round(labels[labels[:, 0] == 0, 5] / 90) * 90  # traffic sign
-        labels[labels[:, 0] == 4, 5] = 90  # light poles
-        labels[labels[:, 0] == 8, 5] = np.round(labels[labels[:, 0] == 8, 5] / 90) * 90  # Building
-        labels[labels[:, 0] == 9, 5] = np.round(labels[labels[:, 0] == 9, 5] / 90) * 90  # billboard
-        labels[labels[:, 0] == 10, 5] = 90  # pedestrian
-        labels[labels[:, 0] == 11, 5] = np.round(labels[labels[:, 0] == 11, 5] / 90) * 90  # car
-        labels[labels[:, 0] == 12, 5] = np.round(labels[labels[:, 0] == 12, 5] / 90) * 90  # Bus
-        labels[labels[:, 0] == 13, 5] = np.round(labels[labels[:, 0] == 13, 5] / 90) * 90  # motorcycle
-        labels[labels[:, 0] == 14, 5] = np.round(labels[labels[:, 0] == 14, 5] / 90) * 90  # HV
-        labels[labels[:, 0] == 15, 5] = np.round(labels[labels[:, 0] == 15, 5] / 90) * 90  # PT
-        labels[labels[:, 0] == 16, 5] = np.round(labels[labels[:, 0] == 16, 5] / 90) * 90  # Tree
-
         # one transformend and one not
         if self.acess_numb and not self.val:
             #print(1)
@@ -216,7 +203,7 @@ class ListDataset(Dataset):
 
             # augmaent boxes
             img, labels = rand_flib(img, labels)
-            #img, labels = rand_rotate(img, labels) # remove for fixing angel
+            img, labels = rand_rotate(img, labels)
 
         # upate acess_num
         self.acess_numb = not(self.acess_numb)
@@ -302,11 +289,8 @@ class ListDataset(Dataset):
             labels[:, 4] = np.max([val1, val2], axis=0) / diagonal_length  # length
 
             # Normalize theta
-            labels[:, 5] /= 90  #theta[90, -90]
-
-            # delete samll objects
-            boxes_area = (labels[:, 3]*self.img_shape[0]) * (labels[:, 4]*self.img_shape[0])
-            labels = labels[boxes_area > 50]
+            labels[:, 5] = (labels[:, 5] + 180) % 180  # theta[0, 180)
+            labels[:, 5] /= 180  # [0,1)
 
         # Fill matrix
         filled_labels = np.zeros((self.max_objects, 6))
