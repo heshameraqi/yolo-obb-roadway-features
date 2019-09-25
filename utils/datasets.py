@@ -34,10 +34,11 @@ class HorizinatFlib(object):
             bbox[:, 1] = img.shape[1] - bbox[:, 1] # x = width - x
             bbox[:, 5] *= -1 # angel = - angel
             # switch classes of the specific side classes
-            bbox[bbox[:, 0] == 2, 0] = 3  # right barriar -> left
-            bbox[bbox[:, 0] == 3, 0] = 2  # left barriar -> right
-            bbox[bbox[:, 0] == 5, 0] = 6  # right curb  -> left
-            bbox[bbox[:, 0] == 6, 0] = 5  # left curb -> right
+            cls = bbox[:, 0].copy()
+            bbox[cls == 2, 0] = 3  # right barriar -> left
+            bbox[cls == 3, 0] = 2  # left barriar -> right
+            bbox[cls == 5, 0] = 6  # right curb  -> left
+            bbox[cls == 6, 0] = 5  # left curb -> right
 
 
         return img, bbox

@@ -5,6 +5,7 @@ checkpoints/
 output/
 data/data/
 logs/
+data.txt
 train.txt
 val.txt
 nohup.out

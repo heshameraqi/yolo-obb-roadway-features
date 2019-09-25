@@ -237,7 +237,7 @@ def get_batch_statistics(outputs, targets, iou_threshold):
                 if pred_label not in target_labels:
                     continue
 
-                ious = bbox_iou_obb_H(np.expand_dims(pred_box, 0), target_boxes).unsqueeze(0).numpy()
+                ious = bbox_iou_obb_H(np.expand_dims(pred_box, axis=0), target_boxes).unsqueeze(0).numpy()
                 iou, box_index = ious.max(1), ious.argmax(1)
                 if iou >= iou_threshold and box_index not in detected_boxes and pred_label == target_labels[box_index]:
                     true_positives[pred_i] = 1

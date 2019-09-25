@@ -31,7 +31,7 @@ parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold
 parser.add_argument('--batch_size', type=int, default=4, help='size of the batches')
 parser.add_argument('--n_cpu', type=int, default=0, help='number of cpu threads to use during batch generation')
 parser.add_argument('--img_size', type=int, default=416, help='size of each image dimension')
-parser.add_argument('--sampels_number', type=float, default=0.8, help='number of sampels to output')
+parser.add_argument('--sampels_number', type=float, default=40, help='number of sampels to output')
 parser.add_argument('--use_cuda', type=bool, default=True, help='whether to use cuda if available')
 opt = parser.parse_args()
 print(opt)
@@ -65,9 +65,9 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 imgs = []           # Stores image paths
 img_detections = [] # Stores detections for each image index
 
-print ('\nPerforming object detection:')
+print('\nPerforming object detection:')
 prev_time = time.time()
-for batch_i, (img_paths, input_imgs, _) in enumerate(dataloader):
+for batch_i, (img_paths, input_imgs,_) in enumerate(dataloader):
     # Configure input
     input_imgs = Variable(input_imgs.type(Tensor))
 
@@ -103,17 +103,18 @@ for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
     img = np.array(Image.open(path))
     height, width, depth = img.shape
 
-    # What size does the figure need to be in inches to fit the image?
-    figsize = width / float(80), height / float(80)
+    if opt.output_type == 'image':
+        # What size does the figure need to be in inches to fit the image?
+        figsize = width / float(80), height / float(80)
 
-    # Create a figure of the right size with one axes that takes up the full figure
-    fig = plt.figure(figsize=figsize)
+        # Create a figure of the right size with one axes that takes up the full figure
+        fig = plt.figure(figsize=figsize)
 
-    ax = fig.add_axes([0, 0, 1, 1])
-
-    # Hide spines, ticks, etc.
-    ax.axis('off')
-    ax.imshow(img)
+        ax = fig.add_axes([0, 0, 1, 1])
+    
+        # Hide spines, ticks, etc.
+        ax.axis('off')
+        ax.imshow(img)
 
     labels = detections[:,-1]
     detections = detections.cpu().numpy()
@@ -157,58 +158,70 @@ for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
 
     # Draw bounding boxes and labels of detections
     if detections is not None:
-        unique_labels = labels.cpu().unique()
-        n_cls_preds = len(unique_labels)
-        bbox_colors = random.sample(colors, n_cls_preds)
-        for i, (x, y, w, le, theta, conf, cls_conf, cls_pred) in enumerate(detections):
 
-            #if cls_pred != 0: continue  #to display specific objects
+        if opt.output_type == 'text' :
+            # for labels to text file
+            detections[:, 0] = ((p1_x + p2_x + p3_x + p4_x) / 4)
+            detections[:, 1] = ((p1_y + p2_y + p3_y + p4_y) / 4)
 
-            print("\t+ Label: %s, Conf: %.5f, angel : %.5f" % (classes[int(cls_pred)], cls_conf.item(), theta))
+            dim1 = np.sqrt((p2_x - p1_x) ** 2 + (p2_y - p1_y) ** 2)
+            dim2 = np.sqrt((p3_x - p2_x) ** 2 + (p3_y - p2_y) ** 2)
+            detections[:, 3] = np.min([dim1, dim2], axis=0)  # width
+            detections[:, 2] = np.max([dim1, dim2], axis=0)  # lenght
 
-            y = ((y - pad_y // 2) / unpad_h) * img.shape[0]
-            x = ((x - pad_x // 2) / unpad_w) * img.shape[1]
+            out = np.concatenate([detections[:, -1:], detections[:, :5]], axis=1)
 
-            color = bbox_colors[int(np.where(unique_labels == int(cls_pred))[0])]
+            with open("meta/" + path.replace(".png", ".txt").replace(".jpg", ".txt").replace(
+                opt.image_folder, ''), 'w') as file:
+                file.write("YOLO_OBB" + "\n")
+                for lab in out:
+                    file.write("%d %.5f %.5f %.5f %.5f %.5f"%(lab[0], lab[1], lab[2], lab[3], lab[4], lab[5])+"\n")
 
-            # Create a polygon patch
-            verts = [(p1_x[i], p1_y[i]), (p2_x[i], p2_y[i]), (p3_x[i], p3_y[i]), (p4_x[i], p4_y[i]), (0., 0.), ]
-            codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY, ]
-            path = Path(verts, codes)
-            obbox = patches.PathPatch(path, linewidth=3, edgecolor=color, facecolor='none')
+            #np.savetxt("meta/" + path.replace(".png", ".txt").replace(".jpg", ".txt").replace(
+            #    opt.image_folder, ''), out, fmt='%.2f', delimiter=' ', header='YOLO_OBB')
 
-            # Add the bbox to the plot
-            ax.add_patch(obbox)
-            # Add label
-            plt.text(
-                x,
-                y,
-                s=classes[int(cls_pred)],
-                color="white",
-                verticalalignment="top",
-                bbox={"color": color, "pad": 0},
-            )
 
-    # Save generated image with detections
-    plt.axis("off")
-    plt.gca().xaxis.set_major_locator(NullLocator())
-    plt.gca().yaxis.set_major_locator(NullLocator())
-    plt.savefig("output/%d.png" % (img_i), bbox_inches="tight", pad_inches=0.0)
-    #plt.show()
-    plt.close()
+        elif opt.output_type == 'image':
+            unique_labels = labels.cpu().unique()
+            n_cls_preds = len(unique_labels)
+            bbox_colors = random.sample(colors, n_cls_preds)
+            for i, (x, y, w, le, theta, conf, cls_conf, cls_pred) in enumerate(detections):
 
-    '''
-    # for labels to text file
-        detections[:, 0] = ((p1_x + p2_x + p3_x + p4_x) / 4)
-        detections[:, 1] = ((p1_y + p2_y + p3_y + p4_y) / 4)
+                #if cls_pred != 0: continue  #to display specific objects
 
-        dim1 = np.sqrt((p2_x - p1_x) ** 2 + (p2_y - p1_y) ** 2)
-        dim2 = np.sqrt((p3_x - p2_x) ** 2 + (p3_y - p2_y) ** 2)
-        detections[:, 3] = np.min([dim1, dim2], axis=0)  # width
-        detections[:, 2] = np.max([dim1, dim2], axis=0)  # lenght
+                print("\t+ Label: %s, Conf: %.5f, angel : %.5f" % (classes[int(cls_pred)], cls_conf.item(), theta))
 
-        out = np.concatenate([detections[:, -1:], detections[:, :5]], axis=1)
+                y = ((y - pad_y // 2) / unpad_h) * img.shape[0]
+                x = ((x - pad_x // 2) / unpad_w) * img.shape[1]
 
-        np.savetxt("meta_before/" + path.replace(".png", ".txt").replace(".jpg", ".txt").replace(
-            '/content/drive/My Drive/ Cairo-Alex Disert Road/', ''), out, fmt='%.2f', delimiter=' ', header='YOLO_OBB')
-    '''
+                color = bbox_colors[int(np.where(unique_labels == int(cls_pred))[0])]
+
+                # Create a polygon patch
+                verts = [(p1_x[i], p1_y[i]), (p2_x[i], p2_y[i]), (p3_x[i], p3_y[i]), (p4_x[i], p4_y[i]), (0., 0.), ]
+                codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY, ]
+                path = Path(verts, codes)
+                obbox = patches.PathPatch(path, linewidth=3, edgecolor=color, facecolor='none')
+
+                # Add the bbox to the plot
+                ax.add_patch(obbox)
+                # Add label
+                plt.text(
+                    x,
+                    y,
+                    s=classes[int(cls_pred)],
+                    color="white",
+                    verticalalignment="top",
+                    bbox={"color": color, "pad": 0},
+                )
+
+    if opt.output_type == 'image':
+        # Save generated image with detections
+        plt.axis("off")
+        plt.gca().xaxis.set_major_locator(NullLocator())
+        plt.gca().yaxis.set_major_locator(NullLocator())
+        plt.savefig("output/%d.png" % (img_i), bbox_inches="tight", pad_inches=0.0)
+        #plt.show()
+        plt.close()
+
+
+
