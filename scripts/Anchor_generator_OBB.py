@@ -107,7 +107,7 @@ def parse_anno(annotation_path, img_size, resize_size):
                        ,[0,0,0]])
     annotations_pathes = [annotation_path +'/'+s for s in os.listdir(annotation_path) if s.endswith('txt')]
     for annotation in annotations_pathes:
-        if annotation == "/media/user/76E6B044E6B00701/OmarElezaby/data/classes.txt": continue
+        if annotation == "data/classes.txt": continue
         labels =  np.loadtxt(annotation, delimiter=' ', skiprows=1)
         if(len(labels.shape) == 1): labels = np.expand_dims(labels, axis = 0)
 

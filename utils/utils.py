@@ -359,7 +359,8 @@ def bbox_iou_numpy(box1, box2):
     return intersection / ua
 
 
-def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
+def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4, use_fixied_angels = False, use_rules_elimnation = False,
+                        center_difference_thres = 40, area_similarity_thres = 80, detections_class_thers = 10):
     """
     Removes detections with lower object confidence score than 'conf_thres' and performs
     Non-Maximum Suppression to further filter detections.
@@ -370,14 +371,6 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
     Returns detections with shape:
         (x1, y1, w, le, object_conf, class_score, class_pred)
     """
-
-    # From (center x, center y, width, lenght) to (x1, y1, x2, y2)
-    #box_corner = prediction.new(prediction.shape)
-    #box_corner[:, :, 0] = prediction[:, :, 0] - prediction[:, :, 2] / 2
-    #box_corner[:, :, 1] = prediction[:, :, 1] - prediction[:, :, 3] / 2
-    #box_corner[:, :, 2] = prediction[:, :, 0] + prediction[:, :, 2] / 2
-    #box_corner[:, :, 3] = prediction[:, :, 1] + prediction[:, :, 3] / 2
-    #prediction[:, :, :4] = box_corner[:, :, :4]
 
     output = [None for _ in range(len(prediction))]
     for image_i, image_pred in enumerate(prediction):
@@ -400,14 +393,16 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
             # Get the detections with the particular class
             detections_class = detections[detections[:, -1] == c]
 
-            # Fixed angels
-            # objects with two angel
-            #if (c == 0) or (c == 8) or (c == 9) or (c == 11) or (c == 12) or (c == 13) or (c == 14) or (c == 15) or (
-            #        c == 16) or (c == 17):
-            #    detections_class[:, 4] = torch.round(detections_class[:, 4] / 90) * 90
-            # objects with one angel
-            #elif (c == 4) or (c == 10):
-            #    detections_class[:, 4] = 90  # traffic sign
+            # Fix the value of the angel of some classes that have a fixed angel value in the data-set
+            if use_fixied_angels == True:
+                # Fixed angels
+                # objects with two angel
+                if (c == 0) or (c == 8) or (c == 9) or (c == 11) or (c == 12) or (c == 13) or (c == 14) or (c == 15) or (
+                        c == 16) or (c == 17):
+                    detections_class[:, 4] = torch.round(detections_class[:, 4] / 90) * 90
+                # objects with one angel
+                elif (c == 4) or (c == 10):
+                    detections_class[:, 4] = 90  # traffic sign
 
 
             # Sort the detections by maximum objectness confidence
@@ -425,6 +420,17 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
                 ious = bbox_iou_obb_H(max_detections[-1].cpu().numpy(), detections_class[1:].cpu().numpy(), visualize=False)#TODO:
                 # Remove detections with IoU >= NMS threshold
                 detections_class = detections_class[1:][ious < nms_thres]
+
+                # Rule based boxes elimination
+                if use_rules_elimnation and detections_class.shape[0] != 0:
+                    # Compute the closest boxes to the current box in center, size and angel
+                    center_difference = torch.sqrt(torch.pow(max_detections[-1][0, 0] - detections_class[:, 0], 2) +
+                                                   torch.pow(max_detections[-1][0, 1] - detections_class[:, 1], 2)) < center_difference_thres
+                    area_similarity = torch.abs(max_detections[-1][0, 2] * max_detections[-1][0, 3] -
+                                                detections_class[:, 2] * detections_class[:, 3]) < area_similarity_thres
+                    angel_similarity = torch.abs(max_detections[-1][0, 4] - detections_class[:, 4]) < detections_class_thers
+                    # Remove the close boxes in center, size and angel
+                    detections_class = detections_class[~(center_difference & area_similarity & angel_similarity)]
 
             max_detections = torch.cat(max_detections).data
             # Add max detections to outputs

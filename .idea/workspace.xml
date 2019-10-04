@@ -2,9 +2,18 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1180cae9-3b38-4adf-8f81-6d9d72617b44" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/yolo-obb-roadway-features.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/yolo-obb-roadway-features.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/yolov3.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/config/yolov3.cfg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/detect.py" beforeDir="false" afterPath="$PROJECT_DIR$/detect.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/datasets.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/datasets.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/Anchor_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/Anchor_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/Anchor_generator_OBB.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/Anchor_generator_OBB.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/Data_statistics.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/Data_statistics.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/Show_tarns.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/Show_tarns.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/split_classes_random.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/split_classes_random.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/utils.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />

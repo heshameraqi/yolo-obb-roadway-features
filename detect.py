@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--image_folder', type=str, default='data/data', help='path to dataset')
 parser.add_argument("--label_files", type=str, default="val.txt", help="files of the names of the annotations")
 parser.add_argument('--config_path', type=str, default='config/yolov3.cfg', help='path to model config file')
-parser.add_argument('--weights_path', type=str, default='checkpoints/yolov3_ckpt_100.pth', help='path to weights file')
+parser.add_argument('--weights_path', type=str, default='checkpoints/yolov3_ckpt_265.pth', help='path to weights file')
 parser.add_argument('--class_path', type=str, default='data/data/classes.txt', help='path to class label file')
 parser.add_argument('--conf_thres', type=float, default=0.8, help='object confidence threshold')
 parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold for non-maximum suppression')
@@ -32,6 +32,7 @@ parser.add_argument('--batch_size', type=int, default=4, help='size of the batch
 parser.add_argument('--n_cpu', type=int, default=0, help='number of cpu threads to use during batch generation')
 parser.add_argument('--img_size', type=int, default=416, help='size of each image dimension')
 parser.add_argument('--sampels_number', type=float, default=40, help='number of sampels to output')
+parser.add_argument('--output_type', type=str, default='text', help='the type of output, either text or image')
 parser.add_argument('--use_cuda', type=bool, default=True, help='whether to use cuda if available')
 opt = parser.parse_args()
 print(opt)
@@ -40,6 +41,7 @@ cuda = torch.cuda.is_available() and opt.use_cuda
 print(cuda)
 
 os.makedirs('output', exist_ok=True)
+os.makedirs('meta', exist_ok=True)
 
 # Get classes number
 classes = load_classes(opt.class_path)
@@ -171,7 +173,7 @@ for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
 
             out = np.concatenate([detections[:, -1:], detections[:, :5]], axis=1)
 
-            with open("meta/" + path.replace(".png", ".txt").replace(".jpg", ".txt").replace(
+            with open("meta" + path.replace(".png", ".txt").replace(".jpg", ".txt").replace(
                 opt.image_folder, ''), 'w') as file:
                 file.write("YOLO_OBB" + "\n")
                 for lab in out:
@@ -200,7 +202,7 @@ for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
                 verts = [(p1_x[i], p1_y[i]), (p2_x[i], p2_y[i]), (p3_x[i], p3_y[i]), (p4_x[i], p4_y[i]), (0., 0.), ]
                 codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY, ]
                 path = Path(verts, codes)
-                obbox = patches.PathPatch(path, linewidth=3, edgecolor=color, facecolor='none')
+                obbox = patches.PathPatch(path, linewidth=5, edgecolor=color, facecolor='none')
 
                 # Add the bbox to the plot
                 ax.add_patch(obbox)

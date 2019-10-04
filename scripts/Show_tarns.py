@@ -67,7 +67,7 @@ def visualize_data_batch(imgs, targets):
 
 if __name__ == '__main__':
     '''
-    This script is used to plot the output form data-set to see the effect of data augmentation on the image,
+    This script is used to plot the output form data-set to see output images and labels from data-set class
     and check if the data-set class is working properly  
     '''
 
