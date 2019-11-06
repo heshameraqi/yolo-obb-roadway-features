@@ -59,7 +59,7 @@ for exp in range(5):  #range(7)
             max_val = 1
             drawline(axs[exp], [endx_1, endx_2], [endy_1, endy_2], text_x, text_y,
                      color=get_color(angles[i]/180., min_val, max_val))
-            axs[exp].title.set_text(' Θ encoding')
+            axs[exp].title.set_text(' Direct Θ encoding')
         elif exp == 1:
             # axs[exp].title.set_text('sin(Θ)\nSymmetric around 90°,\nrequires additional variable')
             axs[exp].title.set_text('sin(Θ) encoding')
@@ -74,6 +74,7 @@ for exp in range(5):  #range(7)
             max_val = max([math.cos(math.radians(ang)) for ang in angles])
             drawline(axs[exp], [endx_1, endx_2], [endy_1, endy_2], text_x, text_y,
                      color=get_color(math.cos(math.radians(angles[i])), min_val, max_val))
+            min_val = -1.0  # Hack to show it in the colorbar
         elif exp == 3:
             # axs[exp].title.set_text('sin(2Θ)\nSymmetric around 45° and 135°,\nrequires additional variable')
             axs[exp].title.set_text('sin(2Θ) encoding')
