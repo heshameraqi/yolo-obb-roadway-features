@@ -92,7 +92,7 @@ for exp in range(5):  #range(7)
     # Draw colorbar
     sm = plt.cm.ScalarMappable(cmap=color_map, norm=plt.Normalize(vmin=min_val, vmax=max_val))
     sm._A = []  # fake up the array of the scalar mappable
-    axs[exp].get_figure().colorbar(sm, ax=axs[exp], orientation='horizontal', fraction=0.025, pad=-0.01)  # , pad=0.2
+    axs[exp].get_figure().colorbar(sm, ax=axs[exp], orientation='horizontal', fraction=0.015, pad=-0.007)
     axs[exp].set_aspect('equal')
 plt.tight_layout()
 
