@@ -1,8 +1,11 @@
+
 # PyTorch-YOLOv3-OBB
 Minimal implementation of YOLOv3 in PyTorch upgraded to support oriented bounding boxes detection (OBB).
 
-Dataset download link: https://drive.google.com/file/d/1N3Q8Rehgyxjc7wwpKR3UA9MXndhs80o0/view?usp=sharing
-Dataset annotation tool: https://github.com/heshameraqi/labelImg_OBB
+Dataset Download Link: https://drive.google.com/drive/folders/11zqMu9JbSmgK0HcpJjbfeA7yY77n1Zvl?usp=sharing.
+Dataset Annotation Tool: https://github.com/heshameraqi/labelImg_OBB.
+
+Paper Sampels Meta Data : https://drive.google.com/drive/folders/1mphHGKatXjd1b_JRntnlb8T9CPk45uhr?usp=sharing
 
 <p align="center"><img src="assets/obb.png" width="480"\></p>
 
@@ -98,3 +101,4 @@ Data augmentation as well as additional training tricks remains to be implemente
   year={2018}
 }
 ```
+
