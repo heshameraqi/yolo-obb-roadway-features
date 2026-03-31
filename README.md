@@ -1,14 +1,28 @@
-
 # PyTorch-YOLOv3-OBB
-Minimal implementation of YOLOv3 in PyTorch upgraded to support oriented bounding boxes detection (OBB).
 
-Cairo Roadway Safety Oriented Bounding Boxes Dataset, download: https://heshameraqi.github.io/cairo-roadway-safety-dataset
-Cite our paper: Hesham M. Eraqi et al. Automatic Roadway Features Detection with Oriented Object Detection. Journal of Intelligent Transportation Systems. Applied Sciences (ISSN: 2076-3417), 11(8), 2021. [https://www.researchgate.net/publication/350878498_Automatic_Roadway_Features_Detection_with_Oriented_Object_Detection]
-Dataset Annotation Tool: https://github.com/heshameraqi/labelImg_OBB
+A minimal PyTorch implementation of YOLOv3, extended to support **Oriented Bounding Box (OBB) detection**.
 
-Paper Sampels Meta Data : https://drive.google.com/drive/folders/1mphHGKatXjd1b_JRntnlb8T9CPk45uhr?usp=sharing
+<p align="center"><img src="assets/obb.png" width="480"/></p>
 
-<p align="center"><img src="assets/obb.png" width="480"\></p>
+## Dataset
+
+**Cairo Roadway Safety Oriented Bounding Boxes Dataset**
+Download & license agreement: [https://heshameraqi.github.io/cairo-roadway-safety-dataset](https://heshameraqi.github.io/cairo-roadway-safety-dataset)
+
+Paper samples metadata: [Google Drive](https://drive.google.com/drive/folders/1mphHGKatXjd1b_JRntnlb8T9CPk45uhr?usp=sharing)
+
+## Annotation Tool
+
+Multi-platform oriented bounding box annotation tool:
+[https://github.com/heshameraqi/labelImg_OBB](https://github.com/heshameraqi/labelImg_OBB)
+
+## Citation
+
+If you use this dataset or code, please cite:
+
+> Hesham M. Eraqi et al. **Automatic Roadway Features Detection with Oriented Object Detection.**
+> *Applied Sciences* (ISSN: 2076-3417), 11(8), 2021.
+> [https://www.researchgate.net/publication/350878498_Automatic_Roadway_Features_Detection_with_Oriented_Object_Detection](https://www.researchgate.net/publication/350878498_Automatic_Roadway_Features_Detection_with_Oriented_Object_Detection)
 
 ## Table of Contents
 - [PyTorch-YOLOv3](#pytorch-yolov3)
