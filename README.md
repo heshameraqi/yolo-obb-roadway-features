@@ -2,27 +2,19 @@
 
 A minimal PyTorch implementation of YOLOv3, extended to support **Oriented Bounding Box (OBB) detection**.
 
-<p align="center"><img src="assets/obb.png" width="480"/></p>
-
-## Dataset
-
 **Cairo Roadway Safety Oriented Bounding Boxes Dataset**
 Download & license agreement: [https://heshameraqi.github.io/cairo-roadway-safety-dataset](https://heshameraqi.github.io/cairo-roadway-safety-dataset)
 
-Paper samples metadata: [Google Drive](https://drive.google.com/drive/folders/1mphHGKatXjd1b_JRntnlb8T9CPk45uhr?usp=sharing)
-
-## Annotation Tool
-
+**Annotation Tool**
 Multi-platform oriented bounding box annotation tool:
 [https://github.com/heshameraqi/labelImg_OBB](https://github.com/heshameraqi/labelImg_OBB)
 
-## Citation
-
-If you use this dataset or code, please cite:
-
+**If you use this dataset or code, please cite:**
 > Hesham M. Eraqi et al. **Automatic Roadway Features Detection with Oriented Object Detection.**
 > *Applied Sciences* (ISSN: 2076-3417), 11(8), 2021.
-> [https://www.researchgate.net/publication/350878498_Automatic_Roadway_Features_Detection_with_Oriented_Object_Detection](https://www.researchgate.net/publication/350878498_Automatic_Roadway_Features_Detection_with_Oriented_Object_Detection)
+> [Download Paper](https://www.mdpi.com/2076-3417/11/8/3531)
+
+<p align="center"><img src="assets/obb.png" width="480"/></p>
 
 ## Table of Contents
 - [PyTorch-YOLOv3](#pytorch-yolov3)
